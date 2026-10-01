@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="ka" class="scroll-smooth light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>უდაბნოს მცენარეთა კატალოგი | Udabno Regenerative Farm</title>
+    
+    <!-- PWA Web App Manifest Inline -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Udabno Plant Catalog","short_name":"UdabnoPlants","start_url":".","display":"standalone","background_color":"#2d5a43","theme_color":"#2d5a43","icons":[{"src":"https://placehold.co/192x192/2d5a43/ffffff?text=Udabno","sizes":"192x192","type":"image/png"}]}'>
+    <meta name="theme-color" content="#2d5a43">
+
+    <!-- Fonts: Noto Sans Georgian for refined typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        desert: {
+                            50: '#fcfaf7',
+                            100: '#f5f2eb',
+                            200: '#eadbc8',
+                            300: '#dac0a3',
+                            400: '#c2a682',
+                            500: '#b07a43',
+                            600: '#8b5e34',
+                            700: '#6f4727',
+                            800: '#52331b',
+                            900: '#38210f',
+                        },
+                        sage: {
+                            50: '#f4f8f5',
+                            100: '#e3eee7',
+                            200: '#c6dec3',
+                            500: '#3f6b55',
+                            600: '#2d5a43',
+                            700: '#214332',
+                            800: '#183125',
+                            900: '#0e1d16',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans Georgian"', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Noto Sans Georgian', sans-serif; }
+
+        .badge-honey { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .badge-legume { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .badge-livestock { background-color: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+        
+        .badge-season-summer { background-color: #fef3c7; color: #78350f; border: 1px solid #fde68a; }
+        .badge-season-winter { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        .badge-season-all { background-color: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+
+        .dark .badge-honey { background-color: #78350f; color: #fef3c7; border-color: #92400e; }
+        .dark .badge-legume { background-color: #064e3b; color: #d1fae5; border-color: #065f46; }
+        .dark .badge-livestock { background-color: #0c4a6e; color: #e0f2fe; border-color: #0284c7; }
+
+        .card-flower { border-top: 4px solid #2d5a43; }
+        .card-tree { border-top: 4px solid #b07a43; }
+
+        .filter-chip.active {
+            background-color: #2d5a43;
+            color: #ffffff;
+            border-color: #2d5a43;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .filter-chip.active {
+            background-color: #b07a43;
+            color: #ffffff;
+            border-color: #b07a43;
+        }
+
+        .month-btn.active {
+            background-color: #b07a43;
+            color: #ffffff;
+            border-color: #b07a43;
+            font-weight: 700;
+        }
+
+        /* Field Guide Print Mode CSS */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; font-size: 10pt; }
+            .print-break { page-break-inside: avoid; }
+            .shadow-xl, .shadow-md, .shadow-lg, .shadow-2xl { box-shadow: none !important; }
+            #flowersGrid, #treesGrid {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 12px !important;
+            }
+            .card-flower, .card-tree {
+                border: 1px solid #ccc !important;
+                border-radius: 8px !important;
+                padding: 6px !important;
+            }
+            .card-flower { border-top: 3px solid #2d5a43 !important; }
+            .card-tree { border-top: 3px solid #b07a43 !important; }
+            img { max-height: 100px !important; object-fit: cover !important; }
+        }
+    </style>
+</head>
+<body class="bg-desert-100 dark:bg-stone-900 text-stone-800 dark:text-stone-100 font-sans antialiased min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- Header Navigation -->
+    <header class="bg-sage-600 dark:bg-stone-950 text-white shadow-lg sticky top-0 z-40 border-b border-sage-700 dark:border-stone-800 no-print transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                
+                <!-- Refined Title & Branding -->
+                <div>
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 via-emerald-600 to-amber-700 p-0.5 shadow-lg flex items-center justify-center border border-amber-300/40 transform hover:scale-105 transition">
+                            <div class="w-full h-full bg-sage-800/90 dark:bg-stone-900/90 rounded-[14px] flex items-center justify-center relative overflow-hidden">
+                                <i class="fa-solid fa-tree text-amber-300/40 text-xs absolute -bottom-1 -left-1"></i>
+                                <i class="fa-solid fa-wheat-awn text-emerald-300/40 text-xs absolute -top-1 -right-1"></i>
+                                <i class="fa-solid fa-seedling text-amber-200 text-xl relative z-10 drop-shadow"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h1 class="text-2xl sm:text-3xl font-black tracking-normal text-white drop-shadow-sm font-sans">
+                                    უდაბნოს მცენარეთა კატალოგი
+                                </h1>
+                                <span id="cloudSyncStatusBadge" onclick="openCloudConfigModal()" class="cursor-pointer bg-amber-500/20 text-amber-200 hover:bg-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300/30 flex items-center gap-1 transition" title="Cloud პარამეტრები">
+                                    <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-stone-400"></span>
+                                    <span id="cloudStatusText">Local</span>
+                                </span>
+                            </div>
+                            <p class="text-desert-200 text-xs sm:text-sm font-semibold tracking-wider uppercase mt-0.5">
+                                Udabno Regenerative Farm • საველე გზამკვლევი
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons Controls -->
+                <div class="flex items-center gap-2 self-end lg:self-auto flex-wrap">
+                    <button onclick="openContactModal()" class="bg-sage-700 dark:bg-stone-800 hover:bg-sage-800 dark:hover:bg-stone-700 text-desert-100 border border-sage-500 dark:border-stone-700 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow">
+                        <i class="fa-solid fa-address-card text-amber-300"></i>
+                        <span>კონტაქტი</span>
+                    </button>
+
+                    <button id="slideModeBtn" onclick="startSlideMode()" class="bg-sage-700 dark:bg-stone-800 hover:bg-sage-800 dark:hover:bg-stone-700 text-desert-100 border border-sage-500 dark:border-stone-700 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow">
+                        <i class="fa-solid fa-images text-amber-300"></i>
+                        <span>სლაიდის რეჟიმი</span>
+                    </button>
+
+                    <button id="themeToggleBtn" onclick="toggleTheme()" class="bg-sage-700 dark:bg-stone-800 hover:bg-sage-800 dark:hover:bg-stone-700 text-desert-100 border border-sage-500 dark:border-stone-700 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+                        <i id="themeIcon" class="fa-solid fa-sun text-amber-300"></i>
+                        <span id="themeBtnText">Light</span>
+                    </button>
+
+                    <button onclick="window.print()" class="bg-sage-700 dark:bg-stone-800 hover:bg-sage-800 dark:hover:bg-stone-700 text-desert-100 border border-sage-500 dark:border-stone-700 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition" title="საველე გზამკვლევის ბეჭდვა">
+                        <i class="fa-solid fa-print"></i>
+                        <span class="hidden sm:inline">საველე ბეჭდვა</span>
+                    </button>
+                    
+                    <button id="addPlantBtn" onclick="openAddModal()" class="hidden bg-amber-500 hover:bg-amber-600 text-amber-950 px-3 py-2 rounded-xl text-xs font-bold items-center gap-2 transition shadow">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>ახალი მცენარე</span>
+                    </button>
+
+                    <button id="loginBtn" onclick="toggleAdminLogin()" class="bg-sage-800 dark:bg-stone-800 hover:bg-sage-900 dark:hover:bg-stone-700 text-white px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition border border-sage-600 dark:border-stone-700">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span id="loginBtnText">ადმინ შესვლა</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search & Quick Filters Bar -->
+            <div class="mt-5 pt-4 border-t border-sage-500/50 dark:border-stone-800 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"></i>
+                    <input type="text" id="searchInput" oninput="handleSearch()" placeholder="მოძებნეთ მცენარე (ქართული, ლათინური, ინგლისური სახელი ან თვისება)..." 
+                           class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-sage-700/80 dark:bg-stone-900 text-white placeholder-stone-300 dark:placeholder-stone-500 border border-sage-500 dark:border-stone-700 focus:outline-none focus:ring-2 focus:ring-desert-300 text-sm transition">
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="text-stone-200 dark:text-stone-400 font-medium hidden sm:inline mr-1">ფილტრი:</span>
+                    
+                    <button id="filterHoney" onclick="toggleFilter('honey')" class="filter-chip px-3 py-1.5 rounded-xl border border-sage-500 dark:border-stone-700 bg-sage-700/60 dark:bg-stone-800 text-desert-100 hover:bg-sage-800 transition flex items-center gap-1.5 font-medium">
+                        <span>🐝 თაფლოვანი</span>
+                    </button>
+                    
+                    <button id="filterLegume" onclick="toggleFilter('legume')" class="filter-chip px-3 py-1.5 rounded-xl border border-sage-500 dark:border-stone-700 bg-sage-700/60 dark:bg-stone-800 text-desert-100 hover:bg-sage-800 transition flex items-center gap-1.5 font-medium">
+                        <span>🌱 პარკოსანი / აზოტი</span>
+                    </button>
+                    
+                    <button id="filterLivestock" onclick="toggleFilter('livestock')" class="filter-chip px-3 py-1.5 rounded-xl border border-sage-500 dark:border-stone-700 bg-sage-700/60 dark:bg-stone-800 text-desert-100 hover:bg-sage-800 transition flex items-center gap-1.5 font-medium">
+                        <span>🐄 პირუტყვისთვის</span>
+                    </button>
+
+                    <button onclick="resetFilters()" class="text-desert-200 hover:text-white underline text-xs ml-1 font-medium">
+                        გასუფთავება
+                    </button>
+                </div>
+            </div>
+
+            <!-- Seasonal Calendar Filter Component (12 Months) -->
+            <div class="mt-3 pt-3 border-t border-sage-500/30 dark:border-stone-800 flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+                <span class="text-amber-200 font-bold whitespace-nowrap flex items-center gap-1 mr-1">
+                    <i class="fa-solid fa-calendar-days text-amber-300"></i> სეზონური თვე:
+                </span>
+                <button onclick="selectMonth(0)" id="monthBtn0" class="month-btn active px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-800/80 text-white hover:bg-amber-600 transition whitespace-nowrap">ყველა</button>
+                <button onclick="selectMonth(1)" id="monthBtn1" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">1. იან</button>
+                <button onclick="selectMonth(2)" id="monthBtn2" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">2. თებ</button>
+                <button onclick="selectMonth(3)" id="monthBtn3" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">3. მარ</button>
+                <button onclick="selectMonth(4)" id="monthBtn4" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">4. აპრ</button>
+                <button onclick="selectMonth(5)" id="monthBtn5" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">5. მაი</button>
+                <button onclick="selectMonth(6)" id="monthBtn6" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">6. ივნ</button>
+                <button onclick="selectMonth(7)" id="monthBtn7" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">7. ივლ</button>
+                <button onclick="selectMonth(8)" id="monthBtn8" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">8. აგვ</button>
+                <button onclick="selectMonth(9)" id="monthBtn9" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">9. სექ</button>
+                <button onclick="selectMonth(10)" id="monthBtn10" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">10. ოქტ</button>
+                <button onclick="selectMonth(11)" id="monthBtn11" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">11. ნოე</button>
+                <button onclick="selectMonth(12)" id="monthBtn12" class="month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap">12. დეკ</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Admin Status Banner -->
+    <div id="adminBanner" class="hidden bg-amber-500 dark:bg-amber-600 text-amber-950 px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-3 no-print">
+        <i class="fa-solid fa-lock-open"></i>
+        <span>ადმინისტრატორის რეჟიმი აქტიურია. შეგიძლიათ მცენარეთა რედაქტირება, წაშლა და ახალი მონაცემების დამატება.</span>
+        <button onclick="openCloudConfigModal()" class="bg-amber-900 text-white px-2.5 py-0.5 rounded-lg text-[11px] hover:bg-black transition flex items-center gap-1">
+            <i class="fa-solid fa-cloud"></i> Cloud პარამეტრები
+        </button>
+        <button onclick="logoutAdmin()" class="bg-amber-950 text-white px-2 py-0.5 rounded-lg text-[11px] hover:bg-black transition">გამოსვლა</button>
+    </div>
+
+    <!-- Main Section Layout -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+        
+        <!-- Summary Bar -->
+        <div class="mb-8 bg-white dark:bg-stone-800 p-4 rounded-2xl shadow-sm border border-stone-200 dark:border-stone-700 flex flex-wrap items-center justify-between gap-4 transition-colors">
+            <div class="flex items-center gap-4">
+                <span class="text-stone-500 dark:text-stone-400 text-xs font-semibold uppercase tracking-wider">ჯამური რაოდენობა:</span>
+                <span id="totalCountBadge" class="bg-sage-600 dark:bg-desert-500 text-white px-3 py-1 rounded-full text-xs font-bold">96 მცენარე</span>
+            </div>
+
+            <div class="flex items-center gap-3 text-xs font-semibold">
+                <a href="#flowersSection" class="text-sage-600 dark:text-sage-400 hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-seedling"></i> ყვავილები & ბალახები (<span id="flowersCount">0</span>)
+                </a>
+                <span class="text-stone-300 dark:text-stone-600">|</span>
+                <a href="#treesSection" class="text-desert-600 dark:text-desert-400 hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-tree"></i> ხეები & ბუჩქები (<span id="treesCount">0</span>)
+                </a>
+            </div>
+        </div>
+
+        <!-- Section 1: Flowers -->
+        <section id="flowersSection" class="mb-14 print-break">
+            <div class="flex items-center gap-3 mb-6 pb-3 border-b-2 border-sage-500">
+                <div class="w-8 h-8 rounded-xl bg-sage-600 text-white flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-spa"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-sage-900 dark:text-sage-100">ყვავილები და ბალახები</h2>
+                    <p class="text-xs text-stone-500 dark:text-stone-400">ბალახოვანი მცენარეები, ეფემერები და საფარი კულტურები</p>
+                </div>
+            </div>
+            <div id="flowersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- Section 2: Trees -->
+        <section id="treesSection" class="mb-12 print-break">
+            <div class="flex items-center gap-3 mb-6 pb-3 border-b-2 border-desert-500">
+                <div class="w-8 h-8 rounded-xl bg-desert-500 text-white flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-tree"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold text-desert-900 dark:text-desert-200">ხეები და ბუჩქები</h2>
+                    <p class="text-xs text-stone-500 dark:text-stone-400">ქარსაფარი ზოლები, მრავალწლოვანი ხე-მცენარეები და ბუჩქნარები</p>
+                </div>
+            </div>
+            <div id="treesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- Empty State -->
+        <div id="noResults" class="hidden text-center py-16 bg-white dark:bg-stone-800 rounded-3xl border border-dashed border-stone-300 dark:border-stone-700">
+            <i class="fa-solid fa-seedling text-4xl text-stone-300 dark:text-stone-600 mb-3"></i>
+            <h3 class="text-lg font-bold text-stone-700 dark:text-stone-200">მცენარე ვერ მოიძებნა</h3>
+            <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">სცადეთ სხვა საძიებო სიტყვა ან გასუფთავეთ ფილტრი.</p>
+            <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-sage-600 text-white text-xs font-semibold rounded-xl hover:bg-sage-700 transition">
+                ფილტრის გასუფთავება
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-sage-900 dark:bg-stone-950 text-stone-300 dark:text-stone-400 py-8 border-t border-sage-800 dark:border-stone-800 text-xs mt-auto transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+            <div>
+                <p class="font-bold text-white text-sm">Udabno Regenerative Farm — უდაბნოს მცენარეთა ციფრული კატალოგი</p>
+                <p class="text-stone-400 dark:text-stone-500 mt-0.5">საგარეჯოს მუნიციპალიტეტი, სათაფლე - უდაბნო, საქართველო</p>
+            </div>
+            <div class="text-stone-400 dark:text-stone-500 flex flex-col items-center md:items-end gap-1">
+                <p>&copy; 2026 ყველა უფლება დაცულია.</p>
+                <p class="text-[11px] text-amber-300/80">კატალოგის ავტორი: <span class="font-semibold text-white">Lado Tsintsabadze</span></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL 1: Detail View & Slide Modal with Lightbox trigger -->
+    <div id="detailModal" onclick="handleBackdropClick(event)" oncontextmenu="handleBackdropContextMenu(event)" class="fixed inset-0 bg-stone-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto no-print">
+        
+        <button onclick="navigateSlide(-1); event.stopPropagation();" class="hidden sm:flex absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 bg-stone-900/80 hover:bg-amber-600 text-white rounded-full items-center justify-center transition shadow-2xl border border-stone-700/50 hover:scale-110">
+            <i class="fa-solid fa-chevron-left text-xl"></i>
+        </button>
+
+        <button onclick="navigateSlide(1); event.stopPropagation();" class="hidden sm:flex absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-50 w-12 h-12 bg-stone-900/80 hover:bg-amber-600 text-white rounded-full items-center justify-center transition shadow-2xl border border-stone-700/50 hover:scale-110">
+            <i class="fa-solid fa-chevron-right text-xl"></i>
+        </button>
+
+        <div id="modalContainer" class="bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden my-auto transform transition-all relative flex flex-col max-h-[90vh]">
+            
+            <div class="absolute top-3 right-3 z-30 flex items-center gap-2">
+                <span id="slideCounterBadge" class="bg-stone-900/70 text-amber-200 text-[11px] font-bold px-3 py-1 rounded-full backdrop-blur">
+                    მცენარე 1 / 96
+                </span>
+                <button onclick="closeDetailModal()" class="w-8 h-8 bg-stone-900/70 text-white hover:bg-stone-900 rounded-full flex items-center justify-center transition backdrop-blur">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <div class="sm:hidden absolute top-3 left-3 z-30 flex items-center gap-1.5">
+                <button onclick="navigateSlide(-1); event.stopPropagation();" class="w-8 h-8 bg-stone-900/70 text-white rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </button>
+                <button onclick="navigateSlide(1); event.stopPropagation();" class="w-8 h-8 bg-stone-900/70 text-white rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+            </div>
+
+            <div class="relative h-44 sm:h-56 bg-stone-200 dark:bg-stone-700 overflow-hidden flex-shrink-0 cursor-pointer group" onclick="openLightbox()">
+                <img id="modalImage" src="" alt="" class="w-full h-full object-cover transition duration-300 group-hover:scale-105">
+                <div class="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-950/20 to-transparent"></div>
+                
+                <div class="absolute top-3 left-3 flex items-center gap-2">
+                    <span class="bg-black/60 text-white text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 backdrop-blur group-hover:bg-amber-600 transition">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i> გადიდება
+                    </span>
+                    <button id="modalChangePhotoBtn" onclick="event.stopPropagation(); triggerPhotoUploadFromModal();" class="hidden bg-amber-500 hover:bg-amber-600 text-amber-950 text-xs font-bold px-3 py-1 rounded-full shadow flex items-center gap-1">
+                        <i class="fa-solid fa-camera"></i> ფოტო
+                    </button>
+                </div>
+
+                <div class="absolute bottom-4 left-5 right-5 text-white">
+                    <span id="modalCategoryBadge" class="text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-full bg-sage-600 text-white inline-block mb-1.5"></span>
+                    <h2 id="modalKaName" class="text-xl sm:text-2xl font-black"></h2>
+                    <p id="modalSubNames" class="text-xs text-desert-200 font-medium italic mt-0.5"></p>
+                </div>
+            </div>
+
+            <div class="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1 text-xs sm:text-sm">
+                <div id="modalBadges" class="flex flex-wrap items-center gap-2 pt-1"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div class="bg-amber-50/70 dark:bg-stone-900/90 p-3.5 sm:p-4 rounded-2xl border border-amber-200/60 dark:border-stone-700 md:col-span-2">
+                        <div class="font-bold text-amber-900 dark:text-amber-300 text-xs uppercase tracking-wider mb-2 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-cloud-sun text-amber-600"></i> საძოვრის სეზონის სტატუსი
+                            </span>
+                        </div>
+                        <div class="relative">
+                            <select id="modalGrazingSeasonSelect" onchange="changeModalGrazingSeason(this.value)" 
+                                    class="w-full bg-white dark:bg-stone-800 border border-amber-300 dark:border-stone-600 text-stone-800 dark:text-stone-100 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer transition">
+                                <option value="ზაფხულის საძოვარი">☀️ ზაფხულის საძოვარი (გაზაფხული-ზაფხული)</option>
+                                <option value="ზამთრის საძოვარი">❄️ შემოდგომა-ზამთრის საძოვარი</option>
+                                <option value="ყველა სეზონი">🌿 ყველა სეზონის / ორსეზონიანი</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bg-stone-50 dark:bg-stone-900 p-3.5 rounded-2xl border border-stone-100 dark:border-stone-700">
+                        <div class="font-bold text-sage-800 dark:text-sage-300 text-xs uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-fingerprint text-desert-500"></i> იდენტიფიკაცია
+                        </div>
+                        <p id="attrIdentification" class="text-stone-700 dark:text-stone-300 leading-relaxed text-xs"></p>
+                    </div>
+
+                    <div class="bg-stone-50 dark:bg-stone-900 p-3.5 rounded-2xl border border-stone-100 dark:border-stone-700">
+                        <div class="font-bold text-sage-800 dark:text-sage-300 text-xs uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calendar-days text-desert-500"></i> ვეგეტაცია
+                        </div>
+                        <p id="attrVegetation" class="text-stone-700 dark:text-stone-300 leading-relaxed text-xs"></p>
+                    </div>
+
+                    <div class="bg-stone-50 dark:bg-stone-900 p-3.5 rounded-2xl border border-stone-100 dark:border-stone-700">
+                        <div class="font-bold text-sage-800 dark:text-sage-300 text-xs uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-fan text-desert-500"></i> ყვავილობა
+                        </div>
+                        <p id="attrFlowering" class="text-stone-700 dark:text-stone-300 leading-relaxed text-xs"></p>
+                    </div>
+
+                    <div class="bg-stone-50 dark:bg-stone-900 p-3.5 rounded-2xl border border-stone-100 dark:border-stone-700">
+                        <div class="font-bold text-sage-800 dark:text-sage-300 text-xs uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-wheat-awn text-desert-500"></i> თესლის მომწიფება
+                        </div>
+                        <p id="attrSeed" class="text-stone-700 dark:text-stone-300 leading-relaxed text-xs"></p>
+                    </div>
+
+                    <div class="bg-stone-50 dark:bg-stone-900 p-3.5 rounded-2xl border border-stone-100 dark:border-stone-700">
+                        <div class="font-bold text-sage-800 dark:text-sage-300 text-xs uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-cow text-desert-500"></i> მეცხოველეობა
+                        </div>
+                        <p id="attrLivestock" class="text-stone-700 dark:text-stone-300 leading-relaxed text-xs"></p>
+                    </div>
+
+                    <div class="bg-stone-50 dark:bg-stone-900 p-3.5 rounded-2xl border border-stone-100 dark:border-stone-700">
+                        <div class="font-bold text-sage-800 dark:text-sage-300 text-xs uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-jar text-desert-500"></i> მეფუტკრეობა
+                        </div>
+                        <p id="attrBeekeeping" class="text-stone-700 dark:text-stone-300 leading-relaxed text-xs"></p>
+                    </div>
+
+                    <div class="bg-stone-50 dark:bg-stone-900 p-3.5 rounded-2xl border border-stone-100 dark:border-stone-700">
+                        <div class="font-bold text-sage-800 dark:text-sage-300 text-xs uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-mountain-sun text-desert-500"></i> ნიადაგი & ეკოლოგია
+                        </div>
+                        <p id="attrSoil" class="text-stone-700 dark:text-stone-300 leading-relaxed text-xs"></p>
+                    </div>
+
+                    <div class="bg-stone-50 dark:bg-stone-900 p-3.5 rounded-2xl border border-stone-100 dark:border-stone-700">
+                        <div class="font-bold text-sage-800 dark:text-sage-300 text-xs uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-mortar-pestle text-desert-500"></i> ხალხური გამოყენება
+                        </div>
+                        <p id="attrTraditional" class="text-stone-700 dark:text-stone-300 leading-relaxed text-xs"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-stone-100 dark:bg-stone-900 px-6 py-3 flex items-center justify-between border-t border-stone-200 dark:border-stone-700 flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <button id="modalEditBtn" onclick="openEditModalFromDetail()" class="hidden bg-amber-500 hover:bg-amber-600 text-amber-950 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-pen-to-square"></i> რედაქტირება
+                    </button>
+                    <button id="modalDeleteBtn" onclick="deleteCurrentPlant()" class="hidden bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-trash"></i> წაშლა
+                    </button>
+                </div>
+                <button onclick="closeDetailModal()" class="ml-auto bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold px-5 py-2 rounded-xl transition">
+                    დახურვა
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIGHTBOX MODAL: High-Res Fullscreen Image -->
+    <div id="lightboxModal" onclick="closeLightbox()" class="fixed inset-0 bg-black/95 z-50 hidden flex flex-col items-center justify-center p-4 no-print cursor-zoom-out">
+        <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-2xl bg-stone-800/80 hover:bg-red-600 w-12 h-12 rounded-full flex items-center justify-center transition">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <img id="lightboxImage" src="" class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-stone-800">
+        <p id="lightboxCaption" class="text-stone-300 text-sm mt-3 font-semibold text-center"></p>
+    </div>
+
+    <!-- Hidden File Inputs -->
+    <input type="file" id="imageFileInput" accept="image/*" class="hidden" onchange="handleImageSelected(event)">
+    <input type="file" id="creatorPhotoFileInput" accept="image/*" class="hidden" onchange="handleCreatorPhotoSelected(event)">
+
+    <!-- MODAL: Contact -->
+    <div id="contactModal" onclick="if(event.target.id==='contactModal') closeContactModal()" class="fixed inset-0 bg-stone-900/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-8 relative border border-stone-200 dark:border-stone-700 max-h-[90vh] overflow-y-auto">
+            <button onclick="closeContactModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 w-8 h-8 rounded-full flex items-center justify-center bg-stone-100 dark:bg-stone-700 transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 bg-gradient-to-tr from-amber-500 via-emerald-600 to-sage-700 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg text-2xl border border-amber-300/30">
+                    <i class="fa-solid fa-address-card"></i>
+                </div>
+                <h3 class="text-xl font-black">კონტაქტი & ავტორი</h3>
+                <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">Udabno Regenerative Farm — მცენარეთა კატალოგი</p>
+            </div>
+
+            <div class="space-y-3.5 text-xs">
+                <a href="https://www.instagram.com/udabno.shop" target="_blank" rel="noopener noreferrer" 
+                   class="flex items-center gap-3.5 p-3.5 rounded-2xl bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-amber-500/10 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-amber-900/20 border border-pink-300/40 dark:border-pink-700/40 hover:scale-[1.02] transition shadow-sm group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center text-xl shadow">
+                        <i class="fa-brands fa-instagram"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold text-stone-800 dark:text-stone-100 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition">Instagram გვერდი</div>
+                        <div class="text-stone-500 dark:text-stone-400 text-[11px]">www.instagram.com/udabno.shop</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-stone-400 group-hover:text-pink-500"></i>
+                </a>
+
+                <div class="p-3.5 rounded-2xl bg-sage-50 dark:bg-stone-900/80 border border-sage-200 dark:border-stone-700 flex items-center gap-3.5 relative overflow-hidden group">
+                    <div class="relative w-12 h-12 rounded-xl overflow-hidden bg-sage-600 text-white flex-shrink-0 flex items-center justify-center shadow">
+                        <img id="creatorAvatarImg" src="" class="w-full h-full object-cover hidden" alt="Lado Tsintsabadze">
+                        <i id="creatorAvatarIcon" class="fa-solid fa-user-gear text-lg"></i>
+                        <button id="changeCreatorPhotoBtn" onclick="triggerCreatorPhotoUpload()" class="admin-only hidden absolute inset-0 bg-black/60 text-white text-[9px] font-bold flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                            <i class="fa-solid fa-camera text-xs"></i> შეცვლა
+                        </button>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[10px] font-bold text-sage-700 dark:text-sage-400 uppercase tracking-wider">კატალოგის ავტორი</div>
+                        <div class="font-extrabold text-sm text-stone-800 dark:text-stone-100">Lado Tsintsabadze</div>
+                    </div>
+                </div>
+
+                <div id="additionalContactFieldsList" class="space-y-2.5 pt-1"></div>
+
+                <div id="addContactFieldAdminBox" class="admin-only hidden pt-2 border-t border-dashed border-stone-300 dark:border-stone-700">
+                    <button onclick="toggleAddContactFieldForm()" class="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/50 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>დამატებითი ველის დამატება</span>
+                    </button>
+                    <div id="addContactFieldForm" class="hidden mt-3 p-3.5 bg-stone-100 dark:bg-stone-900 rounded-2xl space-y-2.5 text-xs border border-stone-200 dark:border-stone-700">
+                        <div>
+                            <label class="block font-bold mb-1">ველის დასახელება</label>
+                            <input type="text" id="newContactLabel" placeholder="მაგ: ტელეფონი" class="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">მნიშვნელობა ან ბმული</label>
+                            <input type="text" id="newContactValue" placeholder="მაგ: +995 555 123 456" class="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800">
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button onclick="toggleAddContactFieldForm()" class="px-3 py-1.5 bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-200 rounded-lg font-bold">გაუქმება</button>
+                            <button onclick="saveNewContactField()" class="px-4 py-1.5 bg-sage-600 text-white rounded-lg font-bold hover:bg-sage-700">დამატება</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeContactModal()" class="w-full mt-6 py-2.5 bg-stone-800 hover:bg-stone-900 dark:bg-stone-700 dark:hover:bg-stone-600 text-white font-bold rounded-xl text-xs transition">
+                დახურვა
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Admin Login -->
+    <div id="loginModal" class="fixed inset-0 bg-stone-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-8 relative">
+            <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-sage-100 dark:bg-stone-700 text-sage-700 dark:text-sage-300 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h3 class="text-xl font-bold">ადმინისტრატორის ავტორიზაცია</h3>
+                <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">შეიყვანეთ პაროლი მცენარეების რედაქტირებისთვის</p>
+            </div>
+            <form onsubmit="submitAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold mb-1">პაროლი</label>
+                    <input type="password" id="adminPasswordInput" placeholder="••••••••" required 
+                           class="w-full px-4 py-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-sage-600 text-sm">
+                </div>
+                <div id="loginError" class="hidden text-red-600 dark:text-red-400 text-xs font-semibold text-center">
+                    პაროლი არასწორია! (ნაგულისხმევი: udabno2026)
+                </div>
+                <button type="submit" class="w-full py-3 bg-sage-600 hover:bg-sage-700 text-white font-bold rounded-xl text-xs tracking-wider transition">
+                    შესვლა
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Add / Edit Plant Modal -->
+    <div id="addModal" class="fixed inset-0 bg-stone-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto no-print">
+        <div class="bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden my-8 p-6 sm:p-8 relative">
+            <button onclick="closeAddModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <h3 id="plantModalTitle" class="text-xl font-bold mb-4 border-b pb-3 dark:border-stone-700">ახალი მცენარის დამატება</h3>
+
+            <form onsubmit="savePlantForm(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="editingPlantId" value="">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold mb-1">კატეგორია *</label>
+                        <select id="newCategory" required class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                            <option value="flowers">ყვავილები და ბალახები</option>
+                            <option value="trees">ხეები და ბუჩქები</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">საძოვრის სეზონი *</label>
+                        <select id="newGrazingSeason" required class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                            <option value="ზაფხულის საძოვარი">☀ ზაფხულის საძოვარი</option>
+                            <option value="ზამთრის საძოვარი">❄ შემოდგომა-ზამთრის საძოვარი</option>
+                            <option value="ყველა სეზონი">🌿 ყველა სეზონის</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">ქართული დასახელება *</label>
+                        <input type="text" id="newKaName" required class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">ლათინური დასახელება</label>
+                        <input type="text" id="newLaName" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block font-bold mb-1">ინგლისური დასახელება</label>
+                        <input type="text" id="newEnName" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-1">იდენტიფიკაცია</label>
+                    <textarea id="newIdentification" rows="2" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold mb-1">ვეგეტაცია</label>
+                        <input type="text" id="newVegetation" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">ყვავილობა</label>
+                        <input type="text" id="newFlowering" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">თესლის მომწიფება</label>
+                        <input type="text" id="newSeed" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">მეცხოველეობა</label>
+                        <input type="text" id="newLivestock" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-bold mb-1">მეფუტკრეობა (მაგ: თაფლოვანება: 4/5)</label>
+                        <input type="text" id="newBeekeeping" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">ნიადაგი & ეკოლოგია</label>
+                        <input type="text" id="newSoil" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold mb-1">ხალხური გამოყენება</label>
+                    <textarea id="newTraditional" rows="2" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-4 border-t dark:border-stone-700">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-200 font-bold rounded-xl">გაუქმება</button>
+                    <button type="submit" class="px-6 py-2 bg-sage-600 text-white font-bold rounded-xl hover:bg-sage-700">შენახვა</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: Cloud Config -->
+    <div id="cloudModal" class="fixed inset-0 bg-stone-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 w-full max-w-lg rounded-3xl shadow-2xl p-6 sm:p-8 relative">
+            <button onclick="closeCloudConfigModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black">Firebase Cloud ინტეგრაცია</h3>
+                    <p class="text-xs text-stone-500 dark:text-stone-400">რეალური დროის ონლაინ სინქრონიზაციის პარამეტრები</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-stone-600 dark:text-stone-300 leading-relaxed mb-4 bg-amber-50 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-200/50 dark:border-amber-800/50">
+                ჩაასვით თქვენი Firebase API Config, რათა კატალოგი სრულად გადავიდეს ღრუბლოვან რეჟიმში.
+            </p>
+
+            <form onsubmit="saveCloudConfig(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold mb-1">API Key</label>
+                    <input type="text" id="cfgApiKey" placeholder="AIzaSy..." class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Auth Domain</label>
+                    <input type="text" id="cfgAuthDomain" placeholder="udabno-plants.firebaseapp.com" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                </div>
+                <div>
+                    <label class="block font-bold mb-1">Project ID</label>
+                    <input type="text" id="cfgProjectId" placeholder="udabno-plants" class="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900">
+                </div>
+
+                <div class="flex items-center justify-between pt-3 border-t dark:border-stone-700">
+                    <button type="button" onclick="disconnectCloud()" class="text-red-600 hover:underline font-bold text-xs">
+                        გათიშვა (Local Mode)
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="closeCloudConfigModal()" class="px-4 py-2 bg-stone-200 dark:bg-stone-700 font-bold rounded-xl">გაუქმება</button>
+                        <button type="submit" class="px-5 py-2 bg-sage-600 text-white font-bold rounded-xl hover:bg-sage-700 shadow">დაკავშირება</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-stone-900 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-xl z-50 hidden transition-all duration-300"></div>
+
+    <!-- JavaScript Engine -->
+    <script>
+        // Database of 96 Plants (Instant Fallback Data)
+        const initialPlants = [
+            {
+                id: 1, category: 'flowers', kaName: 'ესპარცეტი', laName: 'Onobrychis viciifolia', enName: 'Sainfoin',
+                grazingSeason: 'ზაფხულის საძოვარი',
+                image: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&w=800&q=80',
+                identification: 'მრავალწლოვანი პარკოსანი, 40–70 სმ, სწორმდგომი, კენტიფრთისებრი ფოთლებით და ვარდისფერ-ზოლიანი ყვავილების მჭიდრო მტევნებით.',
+                vegetation: 'მარტი – ოქტომბერი.', flowering: 'მაისი – ივნისი.', seed: 'ივლისი – აგვისტო.',
+                livestock: 'უმაღლესი კვებითი ღირებულების საკვები (პროტეინი 18–22%). ტანინების გამო არ იწვევს საქონლის შებერილობას.',
+                beekeeping: 'თაფლოვანება: 5/5. იძლევა 90–120 კგ/ჰა უმაღლესი ხარისხის ღია ოქროსფერ ნექტარს.',
+                soil: 'ღრმა მთავარღერძა ფესვები (2–10 მ). ძლიერი აზოტფიქსატორი.',
+                traditional: 'გამოიყენება ორგანიზმის ზოგადი ტონუსის ასამაღლებლად და იმუნიტეტის გასაძლიერებლად.'
+            },
+            {
+                id: 2, category: 'flowers', kaName: 'მინდვრის ზაფრანა', laName: 'Colchicum bulbocodium', enName: 'Spring Meadow-saffron',
+                grazingSeason: 'ზაფხულის საძოვარი',
+                image: 'https://images.unsplash.com/photo-1520412099551-62b6bafeb5bb?auto=format&fit=crop&w=800&q=80',
+                identification: 'მრავალწლოვანი ბოლქვიანი ეფემეროიდი, 10–15 სმ, იასამნისფერ-ვარდისფერი ვარსკვლავისებრი ყვავილებით.',
+                vegetation: 'თებერვალი – აპრილი.', flowering: 'მარტი – აპრილი.', seed: 'მაისი.',
+                livestock: 'შეიცავს ალკალოიდ კოლხიცინს. პირუტყვი ერიდება.', beekeeping: 'თაფლოვანება: 2/5.',
+                soil: 'იზრდება მშრალ, სტეპურ, ქვიან და კირქვიან ფერდობებზე.',
+                traditional: 'მცირე დოზებით გამოიყენებოდა სახსრების ტკივილისა და პოდაგრის სამკურნალოდ.'
+            },
+            {
+                id: 3, category: 'flowers', kaName: 'პრიალა ვერონიკა', laName: 'Veronica polita', enName: 'Gray field speedwell',
+                grazingSeason: 'ზაფხულის საძოვარი',
+                image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80',
+                identification: 'დაბალი ერთწლიანი მცენარე (5–20 სმ), მცოცავი ღეროებითა და წვრილი კაშკაშა ცისფერი ყვავილებით.',
+                vegetation: 'თებერვალი – მაისი.', flowering: 'მარტი – მაისი.', seed: 'მაისი – ივნისი.',
+                livestock: 'გაზაფხულის ადრეული საკვები წვრილფეხა პირუტყვისთვის.', beekeeping: 'თაფლოვანება: 2/5.',
+                soil: 'ფარავს შიშველ ნიადაგს გაზაფხულზე, იცავს ეროზიისგან.', traditional: 'სასუნთქი გზების ანთებისა და კანის დაავადებების დროს.'
+            },
+            {
+                id: 4, category: 'flowers', kaName: 'ფარმსანდუკი', laName: 'Achillea millefolium', enName: 'Yarrow',
+                grazingSeason: 'ყველა სეზონი',
+                image: 'https://images.unsplash.com/photo-1589218436045-ee320057f443?auto=format&fit=crop&w=800&q=80',
+                identification: 'მრავალწლოვანი ბალახოვანი მცენარე; აქვს სწორმდგომი ღერო, არომატული ფოთლები და თეთრი/ვარდისფერი ყვავილედები.',
+                vegetation: 'მარტი – ოქტომბერი.', flowering: 'ივნისი – სექტემბერი.', seed: 'აგვისტო – ოქტომბერი.',
+                livestock: 'ზომიერად კარგი საკვებია, აუმჯობესებს მადას.', beekeeping: 'თაფლოვანება: 3/5.',
+                soil: 'გვალვგამძლეა, იზრდება ნებისმიერ ნიადაგზე.', traditional: 'სისხლდენის შემჩერებელი, ანთების საწინააღმდეგო.'
+            },
+            {
+                id: 5, category: 'flowers', kaName: 'ხორბლიანა / მხოხავი ჭანგა', laName: 'Elymus repens', enName: 'Quackgrass',
+                grazingSeason: 'ყველა სეზონი',
+                image: 'https://images.unsplash.com/photo-1533038590840-1cde6e668a91?auto=format&fit=crop&w=800&q=80',
+                identification: 'მრავალწლოვანი მარცვლოვანი, გრძელი თეთრი მხოხავი ფესვურებითა და სწორი თავთავით.',
+                vegetation: 'მარტი – ნოემბერი.', flowering: 'ივნისი – ივლისი.', seed: 'ივლისი – აგვისტო.',
+                livestock: 'ნაზი ფოთლები მაღალპროტეინულია. ძლიერ გამძლეა ძოვებისადმი.', beekeeping: 'თაფლოვანება: 0/5.',
+                soil: 'ფესვებით კრავს ნიადაგს, უძლებს გათელვას.', traditional: 'ფესვების ნახარში შარდკენჭოვანი დაავადებებისას.'
+            },
+            {
+                id: 47, category: 'flowers', kaName: 'ლურჯი იონჯა', laName: 'Medicago sativa', enName: 'Alfalfa',
+                grazingSeason: 'ყველა სეზონი',
+                image: 'https://images.unsplash.com/photo-1520412099551-62b6bafeb5bb?auto=format&fit=crop&w=800&q=80',
+                identification: 'მრავალწლოვანი პარკოსანი, იასამნისფერი ყვავილებით.',
+                vegetation: 'მარტი – ნოემბერი.', flowering: 'მაისი – სექტემბერი.', seed: 'ივლისი – ოქტომბერი.',
+                livestock: 'საკვები კულტურების დედოფალი (პროტეინი 19–23%).', beekeeping: 'თაფლოვანება: 4/5.',
+                soil: 'ღრმა ფესვები (3–5მ), აზოტფიქსატორი.', traditional: 'ვიტამინური ტონიკი.'
+            },
+            {
+                id: 70, category: 'trees', kaName: 'მცირეფოთოლა თელა', laName: 'Ulmus minor', enName: 'Small-leaved elm',
+                grazingSeason: 'ყველა სეზონი',
+                image: 'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=800&q=80',
+                identification: 'ფოთლოვანი ხე (10–20მ), ასიმეტრიული დაკბილული ფოთლებით და ფრთიანი ნაყოფით.',
+                vegetation: 'მარტი – ნოემბერი.', flowering: 'მარტი – აპრილი.', seed: 'მაისი.',
+                livestock: 'ფოთლები და ყლორტები ნოყიერი საკვებია.', beekeeping: 'თაფლოვანება: 2/5.',
+                soil: 'მაღალი ქარსაფარი ხე.', traditional: 'მტკიცე მერქანი.'
+            },
+            {
+                id: 80, category: 'trees', kaName: 'თეთრი აკაცია', laName: 'Robinia pseudoacacia', enName: 'Black locust',
+                grazingSeason: 'ზაფხულის საძოვარი',
+                image: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=800&q=80',
+                identification: 'სწრაფზარდი ეკლიანი ხე, ჩამოკიდებული თეთრი მტევნებით.',
+                vegetation: 'აპრილი – ნოემბერი.', flowering: 'მაისი – ივნისი.', seed: 'სექტემბერი – ოქტომბერი.',
+                livestock: 'მშრალი ფოთლები თივაში უვნებელი საკვებია.', beekeeping: 'თაფლოვანება: 5/5.',
+                soil: 'ძლიერი აზოტფიქსატორი.', traditional: 'თირკმელებისა და კუჭის მკურნალობა.'
+            },
+            {
+                id: 85, category: 'trees', kaName: 'ცეცხლფოთოლა / ფშატი', laName: 'Elaeagnus angustifolia', enName: 'Russian olive',
+                grazingSeason: 'ზამთრის საძოვარი',
+                image: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=800&q=80',
+                identification: 'ვერცხლისფერი ეკლიანი ხე/ბუჩქი, ტკბილი ვერცხლისფერი ნაყოფით.',
+                vegetation: 'აპრილი – ნოემბერი.', flowering: 'მაისი – ივნისი.', seed: 'სექტემბერი – ოქტომბერი.',
+                livestock: 'ნაყოფს და ფოთლებს სიამოვნებით ჭამს ყველა ცხოველი.', beekeeping: 'თაფლოვანება: 5/5.',
+                soil: 'ხარობს დამლაშებულ ნიადაგზე.', traditional: 'კუჭ-ნაწლავის დარღვევებისას.'
+            },
+            {
+                id: 90, category: 'trees', kaName: 'ასკილი', laName: 'Rosa canina', enName: 'Rosehip / Wild rose',
+                grazingSeason: 'ზამთრის საძოვარი',
+                image: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&w=800&q=80',
+                identification: 'ეკლიანი ბუჩქი, კაშკაშა წითელი ნაყოფით.',
+                vegetation: 'მარტი – ნოემბერი.', flowering: 'მაისი – ივნისი.', seed: 'აგვისტო – ოქტომბერი.',
+                livestock: 'ნაყოფი ვიტამინური საკვებია ფრინველისთვის.', beekeeping: 'თაფლოვანება: 3/5.',
+                soil: 'ქმნის გაუმტარ ცოცხალ ღობეს.', traditional: 'C ვიტამინის უმდიდრესი წყარო.'
+            }
+        ];
+
+        let plantsData = [];
+        let filteredPlantsList = [];
+        let additionalContactFields = [];
+        let creatorPhoto = null;
+        let activeFilters = { honey: false, legume: false, livestock: false };
+        let selectedMonth = 0; // 0 = all
+        let currentModalPlantId = null;
+        let currentSlideIndex = 0;
+        let isAdminLoggedIn = false;
+        let selectedPlantForPhotoUpload = null;
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        let db = null;
+        let firebaseApp = null;
+        let isCloudConnected = false;
+
+        const monthNamesGeo = ['', 'იანვარი', 'თებერვალი', 'მარტი', 'აპრილი', 'მაისი', 'ივნისი', 'ივლისი', 'აგვისტო', 'სექტემბერი', 'ოქტომბერი', 'ნოემბერი', 'დეკემბერი'];
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('udabno_theme') || 'light';
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                updateThemeUI(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeUI(false);
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('udabno_theme', isDark ? 'dark' : 'light');
+            updateThemeUI(isDark);
+        }
+
+        function updateThemeUI(isDark) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeBtnText');
+            if (isDark) {
+                icon.className = 'fa-solid fa-moon text-amber-200';
+                text.innerText = 'Dark';
+            } else {
+                icon.className = 'fa-solid fa-sun text-amber-300';
+                text.innerText = 'Light';
+            }
+        }
+
+        function initCloudSync() {
+            const savedCloudCfg = localStorage.getItem('udabno_firebase_config');
+            if (savedCloudCfg) {
+                try {
+                    const cfg = JSON.parse(savedCloudCfg);
+                    if (cfg && cfg.apiKey && cfg.projectId) {
+                        if (!firebase.apps.length) {
+                            firebaseApp = firebase.initializeApp(cfg);
+                        } else {
+                            firebaseApp = firebase.app();
+                        }
+                        db = firebaseApp.firestore();
+                        isCloudConnected = true;
+                        updateCloudUIStatus(true);
+                        listenToCloudDatabase();
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Firebase Cloud Init Error:', e);
+                }
+            }
+            isCloudConnected = false;
+            updateCloudUIStatus(false);
+            initLocalData();
+        }
+
+        function updateCloudUIStatus(connected) {
+            const dot = document.getElementById('cloudStatusDot');
+            const text = document.getElementById('cloudStatusText');
+            const badge = document.getElementById('cloudSyncStatusBadge');
+
+            if (connected) {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+                text.innerText = 'Cloud';
+                badge.className = 'cursor-pointer bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300/40 flex items-center gap-1 transition';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+                text.innerText = 'Local';
+                badge.className = 'cursor-pointer bg-amber-500/20 text-amber-200 hover:bg-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300/30 flex items-center gap-1 transition';
+            }
+        }
+
+        function listenToCloudDatabase() {
+            if (!db) return;
+            db.collection('udabno_plants').onSnapshot((snapshot) => {
+                if (!snapshot.empty) {
+                    let cloudPlants = [];
+                    snapshot.forEach(doc => {
+                        cloudPlants.push({ id: doc.data().id || doc.id, ...doc.data() });
+                    });
+                    plantsData = cloudPlants;
+                    renderCatalog();
+                } else {
+                    seedInitialDataToCloud();
+                }
+            }, (error) => {
+                console.error("Cloud error:", error);
+                initLocalData();
+            });
+
+            db.collection('udabno_settings').doc('contact_info').onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.additionalContactFields) additionalContactFields = data.additionalContactFields;
+                    if (data.creatorPhoto) creatorPhoto = data.creatorPhoto;
+                    renderContactModalContent();
+                }
+            });
+        }
+
+        function seedInitialDataToCloud() {
+            if (!db || !isAdminLoggedIn) return;
+            const batch = db.batch();
+            initialPlants.forEach(p => {
+                const docRef = db.collection('udabno_plants').doc(String(p.id));
+                batch.set(docRef, p);
+            });
+            batch.commit().then(() => showToast("მონაცემები აიტვირთა Cloud ბაზაში!"));
+        }
+
+        function initLocalData() {
+            const savedData = localStorage.getItem('udabno_plants_v8');
+            plantsData = savedData ? JSON.parse(savedData) : [...initialPlants];
+            const savedFields = localStorage.getItem('udabno_contact_fields');
+            additionalContactFields = savedFields ? JSON.parse(savedFields) : [];
+            creatorPhoto = localStorage.getItem('udabno_creator_photo') || null;
+            renderCatalog();
+        }
+
+        function initApp() {
+            initTheme();
+            isAdminLoggedIn = localStorage.getItem('udabno_admin_logged_in') === 'true';
+            updateAdminUI();
+            initCloudSync();
+            setupKeyboardAndTouchListeners();
+            registerOfflinePWA();
+        }
+
+        function registerOfflinePWA() {
+            if ('serviceWorker' in navigator) {
+                // Register inline basic Service Worker
+                const swCode = `
+                    self.addEventListener('install', e => self.skipWaiting());
+                    self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('udabno_plants_v8', JSON.stringify(plantsData));
+        }
+
+        function syncPlantToCloud(plant) {
+            if (isCloudConnected && db) {
+                db.collection('udabno_plants').doc(String(plant.id)).set(plant, { merge: true });
+            }
+        }
+
+        function deletePlantFromCloud(plantId) {
+            if (isCloudConnected && db) {
+                db.collection('udabno_plants').doc(String(plantId)).delete();
+            }
+        }
+
+        function syncContactSettingsToCloud() {
+            if (isCloudConnected && db) {
+                db.collection('udabno_settings').doc('contact_info').set({
+                    additionalContactFields: additionalContactFields,
+                    creatorPhoto: creatorPhoto || ''
+                }, { merge: true });
+            }
+        }
+
+        function selectMonth(m) {
+            selectedMonth = m;
+            for (let i = 0; i <= 12; i++) {
+                const btn = document.getElementById(`monthBtn${i}`);
+                if (btn) {
+                    if (i === m) {
+                        btn.className = "month-btn active px-2.5 py-1 rounded-lg border border-amber-500 bg-amber-600 text-white font-bold transition whitespace-nowrap";
+                    } else {
+                        btn.className = "month-btn px-2.5 py-1 rounded-lg border border-sage-500 dark:border-stone-700 bg-sage-700/50 text-stone-200 hover:bg-amber-600 transition whitespace-nowrap";
+                    }
+                }
+            }
+            renderCatalog();
+        }
+
+        function plantActiveInMonth(plant, monthNum) {
+            if (!monthNum || monthNum === 0) return true;
+            const nameStr = monthNamesGeo[monthNum];
+            const textToSearch = (plant.flowering || '') + ' ' + (plant.vegetation || '') + ' ' + (plant.seed || '');
+            return textToSearch.includes(nameStr);
+        }
+
+        function renderCatalog() {
+            const flowersGrid = document.getElementById('flowersGrid');
+            const treesGrid = document.getElementById('treesGrid');
+            const searchVal = document.getElementById('searchInput').value.trim().toLowerCase();
+
+            flowersGrid.innerHTML = '';
+            treesGrid.innerHTML = '';
+
+            let flowersCount = 0;
+            let treesCount = 0;
+
+            filteredPlantsList = plantsData.filter(plant => {
+                if (searchVal) {
+                    const haystack = (plant.kaName + ' ' + (plant.laName||'') + ' ' + (plant.enName||'') + ' ' + (plant.identification||'')).toLowerCase();
+                    if (!haystack.includes(searchVal)) return false;
+                }
+
+                if (activeFilters.honey) {
+                    const bk = plant.beekeeping || '';
+                    if (!bk.includes('4/5') && !bk.includes('5/5')) return false;
+                }
+
+                if (activeFilters.legume) {
+                    const text = (plant.identification + ' ' + plant.soil + ' ' + plant.kaName).toLowerCase();
+                    if (!text.includes('პარკოსან') && !text.includes('აზოტფიქსატორ')) return false;
+                }
+
+                if (activeFilters.livestock) {
+                    const ls = (plant.livestock || '').toLowerCase();
+                    if (ls.includes('შხამიანი') || ls.includes('დაბალი')) return false;
+                }
+
+                if (selectedMonth > 0 && !plantActiveInMonth(plant, selectedMonth)) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            filteredPlantsList.forEach(plant => {
+                const card = createCardElement(plant);
+                if (plant.category === 'trees') {
+                    treesGrid.appendChild(card);
+                    treesCount++;
+                } else {
+                    flowersGrid.appendChild(card);
+                    flowersCount++;
+                }
+            });
+
+            document.getElementById('flowersCount').innerText = flowersCount;
+            document.getElementById('treesCount').innerText = treesCount;
+            document.getElementById('totalCountBadge').innerText = `${filteredPlantsList.length} მცენარე`;
+
+            document.getElementById('noResults').classList.toggle('hidden', filteredPlantsList.length > 0);
+        }
+
+        function createCardElement(plant) {
+            const isTree = plant.category === 'trees';
+            const card = document.createElement('div');
+            card.className = `bg-white dark:bg-stone-800 rounded-2xl shadow-md border border-stone-200 dark:border-stone-700 overflow-hidden flex flex-col justify-between transition hover:-translate-y-1 hover:shadow-xl ${isTree ? 'card-tree' : 'card-flower'} print-break`;
+
+            const isHoney = (plant.beekeeping||'').includes('4/5') || (plant.beekeeping||'').includes('5/5');
+            const isLegume = (plant.identification||'').includes('პარკოსან') || (plant.soil||'').includes('აზოტფიქსატორ');
+            const isLivestockGood = (plant.livestock||'').includes('უმაღლესი') || (plant.livestock||'').includes('საუკეთესო') || (plant.livestock||'').includes('ნოყიერი');
+
+            card.innerHTML = `
+                <div>
+                    <div class="relative h-48 bg-stone-200 dark:bg-stone-700 overflow-hidden group">
+                        <img src="${plant.image}" alt="${plant.kaName}" class="w-full h-full object-cover transition duration-500 group-hover:scale-105" onerror="this.src='https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=800&q=80'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+
+                        <span class="absolute top-3 right-3 text-[10px] font-extrabold tracking-wider uppercase px-2.5 py-1 rounded-full shadow text-white ${isTree ? 'bg-desert-600' : 'bg-sage-600'}">
+                            ${isTree ? 'ხე / ბუჩქი' : 'ყვავილი / ბალახი'}
+                        </span>
+
+                        <div class="admin-only ${isAdminLoggedIn ? '' : 'hidden'} absolute top-3 left-3 flex gap-1">
+                            <button onclick="openEditModal(${plant.id})" class="bg-amber-500 hover:bg-amber-600 text-amber-950 text-[11px] font-bold px-2 py-1 rounded-lg shadow flex items-center gap-1 transition" title="რედაქტირება">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="triggerPhotoUploadForPlant(${plant.id})" class="bg-sage-700 hover:bg-sage-800 text-white text-[11px] font-bold px-2 py-1 rounded-lg shadow flex items-center gap-1 transition" title="ფოტო">
+                                <i class="fa-solid fa-camera"></i>
+                            </button>
+                        </div>
+
+                        <div class="absolute bottom-3 left-3 right-3 text-white">
+                            <h3 class="font-bold text-lg leading-snug text-white">${plant.kaName}</h3>
+                            <p class="text-xs text-desert-200 italic opacity-90">${plant.laName || ''} ${plant.enName ? '• ' + plant.enName : ''}</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 space-y-3 text-xs">
+                        <!-- Quick Visual Badges -->
+                        <div class="flex flex-wrap gap-1.5">
+                            ${isHoney ? `<span class="badge-honey px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">🐝 თაფლოვანი</span>` : ''}
+                            ${isLegume ? `<span class="badge-legume px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">🌱 პარკოსანი</span>` : ''}
+                            ${isLivestockGood ? `<span class="badge-livestock px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">🐄 პირუტყვისთვის</span>` : ''}
+                        </div>
+
+                        <p class="text-stone-600 dark:text-stone-300 line-clamp-3 leading-relaxed">
+                            ${plant.identification || 'იდენტიფიკაციის დეტალები მითითებული არ არის.'}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="px-4 pb-4 pt-1 no-print">
+                    <button onclick="openDetailModal(${plant.id})" class="w-full py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 ${isTree ? 'bg-desert-100 hover:bg-desert-200 text-desert-800 dark:bg-stone-700 dark:text-desert-200' : 'bg-sage-100 hover:bg-sage-200 text-sage-800 dark:bg-stone-700 dark:text-sage-200'}">
+                        <span>მეტის ნახვა</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function openLightbox() {
+            if (!currentModalPlantId) return;
+            const plant = plantsData.find(p => p.id === currentModalPlantId);
+            if (!plant) return;
+
+            document.getElementById('lightboxImage').src = plant.image;
+            document.getElementById('lightboxCaption').innerText = `${plant.kaName} (${plant.laName || ''})`;
+            document.getElementById('lightboxModal').classList.remove('hidden');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightboxModal').classList.add('hidden');
+        }
+
+        function openDetailModal(id) {
+            const plantIndex = filteredPlantsList.findIndex(p => p.id === id);
+            if (plantIndex === -1) return;
+
+            currentSlideIndex = plantIndex;
+            renderModalContent(filteredPlantsList[currentSlideIndex]);
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function renderModalContent(plant) {
+            if (!plant) return;
+            currentModalPlantId = plant.id;
+            const isTree = plant.category === 'trees';
+
+            document.getElementById('modalImage').src = plant.image;
+            document.getElementById('modalKaName').innerText = plant.kaName;
+            document.getElementById('modalSubNames').innerText = `${plant.laName || ''} ${plant.enName ? '• ' + plant.enName : ''}`;
+            
+            const catBadge = document.getElementById('modalCategoryBadge');
+            catBadge.innerText = isTree ? 'ხე / ბუჩქი' : 'ყვავილი / ბალახი';
+            catBadge.className = `text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-full text-white inline-block mb-1.5 ${isTree ? 'bg-desert-600' : 'bg-sage-600'}`;
+
+            document.getElementById('attrIdentification').innerText = plant.identification || 'არ არის მითითებული';
+            document.getElementById('attrVegetation').innerText = plant.vegetation || 'არ არის მითითებული';
+            document.getElementById('attrFlowering').innerText = plant.flowering || 'არ არის მითითებული';
+            document.getElementById('attrSeed').innerText = plant.seed || 'არ არის მითითებული';
+            document.getElementById('attrLivestock').innerText = plant.livestock || 'არ არის მითითებული';
+            document.getElementById('attrBeekeeping').innerText = plant.beekeeping || 'არ არის მითითებული';
+            document.getElementById('attrSoil').innerText = plant.soil || 'არ არის მითითებული';
+            document.getElementById('attrTraditional').innerText = plant.traditional || 'არ არის მითითებული';
+
+            const seasonSelect = document.getElementById('modalGrazingSeasonSelect');
+            if (seasonSelect) {
+                let seasonVal = plant.grazingSeason || 'ზაფხულის საძოვარი';
+                if (seasonVal.includes('ზამთრის')) seasonSelect.value = 'ზამთრის საძოვარი';
+                else if (seasonVal.includes('ყველა')) seasonSelect.value = 'ყველა სეზონი';
+                else seasonSelect.value = 'ზაფხულის საძოვარი';
+            }
+
+            document.getElementById('slideCounterBadge').innerText = `მცენარე ${currentSlideIndex + 1} / ${filteredPlantsList.length}`;
+            updateModalBadges(plant);
+        }
+
+        function navigateSlide(direction) {
+            if (filteredPlantsList.length === 0) return;
+            currentSlideIndex = (currentSlideIndex + direction + filteredPlantsList.length) % filteredPlantsList.length;
+            renderModalContent(filteredPlantsList[currentSlideIndex]);
+        }
+
+        function startSlideMode() {
+            if (filteredPlantsList.length > 0) openDetailModal(filteredPlantsList[0].id);
+        }
+
+        function setupKeyboardAndTouchListeners() {
+            window.addEventListener('keydown', function(e) {
+                const modal = document.getElementById('detailModal');
+                const lightbox = document.getElementById('lightboxModal');
+                if (lightbox && !lightbox.classList.contains('hidden')) {
+                    if (e.key === 'Escape') closeLightbox();
+                    return;
+                }
+                if (modal && !modal.classList.contains('hidden')) {
+                    if (e.key === 'ArrowLeft') navigateSlide(-1);
+                    else if (e.key === 'ArrowRight') navigateSlide(1);
+                    else if (e.key === 'Escape') closeDetailModal();
+                }
+            });
+
+            const modalContainer = document.getElementById('modalContainer');
+            if (modalContainer) {
+                modalContainer.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX, false);
+                modalContainer.addEventListener('touchend', e => {
+                    touchEndX = e.changedTouches[0].screenX;
+                    if (touchEndX < touchStartX - 50) navigateSlide(1);
+                    if (touchEndX > touchStartX + 50) navigateSlide(-1);
+                }, false);
+            }
+        }
+
+        function changeModalGrazingSeason(newSeason) {
+            if (!currentModalPlantId) return;
+            const plant = plantsData.find(p => p.id === currentModalPlantId);
+            if (plant) {
+                plant.grazingSeason = newSeason;
+                saveData();
+                syncPlantToCloud(plant);
+                updateModalBadges(plant);
+                renderCatalog();
+                showToast('საძოვრის სეზონი განახლდა!');
+            }
+        }
+
+        function updateModalBadges(plant) {
+            const season = plant.grazingSeason || 'ზაფხულის საძოვარი';
+            let seasonBadgeClass = 'badge-season-summer';
+            if (season.includes('ზამთრის')) seasonBadgeClass = 'badge-season-winter';
+            else if (season.includes('ყველა')) seasonBadgeClass = 'badge-season-all';
+
+            const modalBadges = document.getElementById('modalBadges');
+            modalBadges.innerHTML = `<span class="${seasonBadgeClass} px-3 py-1 rounded-full text-xs font-bold">${season}</span>`;
+
+            if ((plant.beekeeping||'').includes('4/5') || (plant.beekeeping||'').includes('5/5')) {
+                modalBadges.innerHTML += `<span class="badge-honey px-2.5 py-1 rounded-full text-xs font-bold">🐝 თაფლოვანი</span>`;
+            }
+            if ((plant.identification||'').includes('პარკოსან') || (plant.soil||'').includes('აზოტფიქსატორ')) {
+                modalBadges.innerHTML += `<span class="badge-legume px-2.5 py-1 rounded-full text-xs font-bold">🌱 პარკოსანი</span>`;
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            currentModalPlantId = null;
+        }
+
+        function handleBackdropClick(e) { if (e.target.id === 'detailModal') closeDetailModal(); }
+        function handleBackdropContextMenu(e) { if (e.target.id === 'detailModal') { e.preventDefault(); closeDetailModal(); } }
+
+        function toggleFilter(filterName) {
+            activeFilters[filterName] = !activeFilters[filterName];
+            const btn = document.getElementById(`filter${filterName.charAt(0).toUpperCase() + filterName.slice(1)}`);
+            if (btn) btn.classList.toggle('active', activeFilters[filterName]);
+            renderCatalog();
+        }
+
+        function resetFilters() {
+            activeFilters = { honey: false, legume: false, livestock: false };
+            ['filterHoney', 'filterLegume', 'filterLivestock'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.classList.remove('active');
+            });
+            document.getElementById('searchInput').value = '';
+            selectMonth(0);
+            renderCatalog();
+        }
+
+        function handleSearch() { renderCatalog(); }
+
+        function toggleAdminLogin() {
+            if (isAdminLoggedIn) logoutAdmin();
+            else document.getElementById('loginModal').classList.remove('hidden');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('adminPasswordInput').value = '';
+        }
+
+        function submitAdminLogin(e) {
+            e.preventDefault();
+            if (document.getElementById('adminPasswordInput').value === 'udabno2026') {
+                isAdminLoggedIn = true;
+                localStorage.setItem('udabno_admin_logged_in', 'true');
+                updateAdminUI();
+                closeLoginModal();
+                showToast('ავტორიზაცია წარმატებულია!');
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminLoggedIn = false;
+            localStorage.setItem('udabno_admin_logged_in', 'false');
+            updateAdminUI();
+            showToast('გამოსვლა განხორციელდა.');
+        }
+
+        function updateAdminUI() {
+            document.getElementById('addPlantBtn').classList.toggle('hidden', !isAdminLoggedIn);
+            document.getElementById('loginBtnText').innerText = isAdminLoggedIn ? 'გამოსვლა' : 'ადმინ შესვლა';
+            document.getElementById('adminBanner').classList.toggle('hidden', !isAdminLoggedIn);
+            document.getElementById('modalChangePhotoBtn').classList.toggle('hidden', !isAdminLoggedIn);
+            document.getElementById('modalDeleteBtn').classList.toggle('hidden', !isAdminLoggedIn);
+            document.getElementById('modalEditBtn').classList.toggle('hidden', !isAdminLoggedIn);
+
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', !isAdminLoggedIn));
+            renderContactModalContent();
+        }
+
+        function triggerPhotoUploadForPlant(id) {
+            selectedPlantForPhotoUpload = id;
+            document.getElementById('imageFileInput').click();
+        }
+
+        function triggerPhotoUploadFromModal() {
+            if (currentModalPlantId) triggerPhotoUploadForPlant(currentModalPlantId);
+        }
+
+        function handleImageSelected(event) {
+            const file = event.target.files[0];
+            if (!file || !selectedPlantForPhotoUpload) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const plant = plantsData.find(p => p.id === selectedPlantForPhotoUpload);
+                if (plant) {
+                    plant.image = e.target.result;
+                    saveData();
+                    syncPlantToCloud(plant);
+                    renderCatalog();
+                    if (currentModalPlantId === plant.id) document.getElementById('modalImage').src = e.target.result;
+                    showToast('ფოტო განახლდა!');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function triggerCreatorPhotoUpload() { document.getElementById('creatorPhotoFileInput').click(); }
+
+        function handleCreatorPhotoSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                creatorPhoto = e.target.result;
+                localStorage.setItem('udabno_creator_photo', creatorPhoto);
+                syncContactSettingsToCloud();
+                renderContactModalContent();
+                showToast('ავტორის ფოტო განახლდა!');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function toggleAddContactFieldForm() {
+            document.getElementById('addContactFieldForm').classList.toggle('hidden');
+        }
+
+        function saveNewContactField() {
+            const label = document.getElementById('newContactLabel').value.trim();
+            const value = document.getElementById('newContactValue').value.trim();
+
+            if (!label || !value) return;
+
+            additionalContactFields.push({ id: Date.now(), label, value });
+            localStorage.setItem('udabno_contact_fields', JSON.stringify(additionalContactFields));
+            syncContactSettingsToCloud();
+
+            document.getElementById('newContactLabel').value = '';
+            document.getElementById('newContactValue').value = '';
+            toggleAddContactFieldForm();
+            renderContactModalContent();
+            showToast('ახალი ველი დაემატა!');
+        }
+
+        function deleteContactField(id) {
+            additionalContactFields = additionalContactFields.filter(f => f.id !== id);
+            localStorage.setItem('udabno_contact_fields', JSON.stringify(additionalContactFields));
+            syncContactSettingsToCloud();
+            renderContactModalContent();
+        }
+
+        function renderContactModalContent() {
+            const img = document.getElementById('creatorAvatarImg');
+            const icon = document.getElementById('creatorAvatarIcon');
+            if (creatorPhoto) {
+                img.src = creatorPhoto;
+                img.classList.remove('hidden');
+                icon.classList.add('hidden');
+            } else {
+                img.classList.add('hidden');
+                icon.classList.remove('hidden');
+            }
+
+            const list = document.getElementById('additionalContactFieldsList');
+            list.innerHTML = '';
+
+            additionalContactFields.forEach(field => {
+                const item = document.createElement('div');
+                item.className = 'p-3 rounded-2xl bg-stone-50 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-700 flex items-center justify-between gap-3 text-xs';
+                item.innerHTML = `
+                    <div>
+                        <div class="text-[10px] font-bold text-stone-500 uppercase">${field.label}</div>
+                        <div class="font-bold text-stone-800 dark:text-stone-100">${field.value}</div>
+                    </div>
+                    ${isAdminLoggedIn ? `<button onclick="deleteContactField(${field.id})" class="text-red-500 p-1"><i class="fa-solid fa-trash"></i></button>` : ''}
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function openAddModal() {
+            document.getElementById('editingPlantId').value = "";
+            document.getElementById('plantModalTitle').innerText = "ახალი მცენარის დამატება";
+            document.getElementById('newKaName').value = "";
+            document.getElementById('newLaName').value = "";
+            document.getElementById('newEnName').value = "";
+            document.getElementById('newIdentification').value = "";
+            document.getElementById('newVegetation').value = "";
+            document.getElementById('newFlowering').value = "";
+            document.getElementById('newSeed').value = "";
+            document.getElementById('newLivestock').value = "";
+            document.getElementById('newBeekeeping').value = "";
+            document.getElementById('newSoil').value = "";
+            document.getElementById('newTraditional').value = "";
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+
+        function openEditModal(plantId) {
+            const plant = plantsData.find(p => p.id === plantId);
+            if (!plant) return;
+
+            document.getElementById('editingPlantId').value = plant.id;
+            document.getElementById('plantModalTitle').innerText = `მცენარის რედაქტირება: ${plant.kaName}`;
+
+            document.getElementById('newCategory').value = plant.category || 'flowers';
+            document.getElementById('newGrazingSeason').value = plant.grazingSeason || 'ზაფხულის საძოვარი';
+            document.getElementById('newKaName').value = plant.kaName || '';
+            document.getElementById('newLaName').value = plant.laName || '';
+            document.getElementById('newEnName').value = plant.enName || '';
+            document.getElementById('newIdentification').value = plant.identification || '';
+            document.getElementById('newVegetation').value = plant.vegetation || '';
+            document.getElementById('newFlowering').value = plant.flowering || '';
+            document.getElementById('newSeed').value = plant.seed || '';
+            document.getElementById('newLivestock').value = plant.livestock || '';
+            document.getElementById('newBeekeeping').value = plant.beekeeping || '';
+            document.getElementById('newSoil').value = plant.soil || '';
+            document.getElementById('newTraditional').value = plant.traditional || '';
+
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+
+        function openEditModalFromDetail() {
+            if (currentModalPlantId) {
+                closeDetailModal();
+                openEditModal(currentModalPlantId);
+            }
+        }
+
+        function closeAddModal() { document.getElementById('addModal').classList.add('hidden'); }
+
+        function savePlantForm(e) {
+            e.preventDefault();
+            const editingId = document.getElementById('editingPlantId').value;
+
+            if (editingId) {
+                // Update Existing Plant
+                const plant = plantsData.find(p => String(p.id) === String(editingId));
+                if (plant) {
+                    plant.category = document.getElementById('newCategory').value;
+                    plant.grazingSeason = document.getElementById('newGrazingSeason').value;
+                    plant.kaName = document.getElementById('newKaName').value;
+                    plant.laName = document.getElementById('newLaName').value;
+                    plant.enName = document.getElementById('newEnName').value;
+                    plant.identification = document.getElementById('newIdentification').value;
+                    plant.vegetation = document.getElementById('newVegetation').value;
+                    plant.flowering = document.getElementById('newFlowering').value;
+                    plant.seed = document.getElementById('newSeed').value;
+                    plant.livestock = document.getElementById('newLivestock').value;
+                    plant.beekeeping = document.getElementById('newBeekeeping').value;
+                    plant.soil = document.getElementById('newSoil').value;
+                    plant.traditional = document.getElementById('newTraditional').value;
+
+                    saveData();
+                    syncPlantToCloud(plant);
+                    showToast('მცენარე წარმატებით განახლდა!');
+                }
+            } else {
+                // Create New Plant
+                const newPlant = {
+                    id: Date.now(),
+                    category: document.getElementById('newCategory').value,
+                    grazingSeason: document.getElementById('newGrazingSeason').value,
+                    kaName: document.getElementById('newKaName').value,
+                    laName: document.getElementById('newLaName').value,
+                    enName: document.getElementById('newEnName').value,
+                    image: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=800&q=80',
+                    identification: document.getElementById('newIdentification').value,
+                    vegetation: document.getElementById('newVegetation').value,
+                    flowering: document.getElementById('newFlowering').value,
+                    seed: document.getElementById('newSeed').value,
+                    livestock: document.getElementById('newLivestock').value,
+                    beekeeping: document.getElementById('newBeekeeping').value,
+                    soil: document.getElementById('newSoil').value,
+                    traditional: document.getElementById('newTraditional').value
+                };
+
+                plantsData.unshift(newPlant);
+                saveData();
+                syncPlantToCloud(newPlant);
+                showToast('ახალი მცენარე დაემატა!');
+            }
+
+            renderCatalog();
+            closeAddModal();
+        }
+
+        function deleteCurrentPlant() {
+            if (!currentModalPlantId) return;
+            plantsData = plantsData.filter(p => p.id !== currentModalPlantId);
+            saveData();
+            deletePlantFromCloud(currentModalPlantId);
+            closeDetailModal();
+            renderCatalog();
+            showToast('მცენარე წაიშალა.');
+        }
+
+        function openCloudConfigModal() { document.getElementById('cloudModal').classList.remove('hidden'); }
+        function closeCloudConfigModal() { document.getElementById('cloudModal').classList.add('hidden'); }
+
+        function saveCloudConfig(e) {
+            e.preventDefault();
+            const apiKey = document.getElementById('cfgApiKey').value.trim();
+            const authDomain = document.getElementById('cfgAuthDomain').value.trim();
+            const projectId = document.getElementById('cfgProjectId').value.trim();
+
+            if (!apiKey || !projectId) return;
+
+            localStorage.setItem('udabno_firebase_config', JSON.stringify({ apiKey, authDomain, projectId }));
+            closeCloudConfigModal();
+            window.location.reload();
+        }
+
+        function disconnectCloud() {
+            localStorage.removeItem('udabno_firebase_config');
+            closeCloudConfigModal();
+            window.location.reload();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function openContactModal() {
+            renderContactModalContent();
+            document.getElementById('contactModal').classList.remove('hidden');
+        }
+
+        function closeContactModal() { document.getElementById('contactModal').classList.add('hidden'); }
+
+        window.onload = function() { initApp(); };
+    </script>
+</body>
+</html>
